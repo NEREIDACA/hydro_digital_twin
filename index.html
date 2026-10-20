@@ -61,6 +61,9 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0;height:22px
 .chip-btn{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:999px;padding:4px 11px;cursor:pointer}
 .chip-btn:hover{border-color:var(--accent);color:var(--accent)}
 .chip-btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.chip-btn.sel{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:700}
+#qm-toggle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#qm-toggle .qm-label{font-size:12.5px;color:var(--muted)}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .picker{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .picker .col{display:grid;gap:5px;min-width:0}
@@ -160,6 +163,12 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
     <p class="lede">Ajusta quanta aigua surt del sistema Ter i prem <b>Executa</b>. El navegador torna a calcular el balanç dels embassaments per als 51 membres de la predicció estacional i mostra el risc de creuar els llindars del Pla especial de sequera.</p>
     <p class="lede" style="font-size:14px;color:var(--muted)">Tria l’any i el mes de la predicció. En mesos passats també veuràs el volum que es va observar realment.</p>
     <div class="meta"><span id="meta-init"></span><span id="meta-members"></span><span id="meta-horizon"></span></div>
+    <div id="qm-toggle" hidden>
+      <span class="qm-label">Predicció d’entrada del Sau:</span>
+      <button type="button" class="chip-btn" id="qm-off">Original</button>
+      <button type="button" class="chip-btn" id="qm-on">Corregida (QM)</button>
+      <span class="qm-label">Original = millor per al volum de l’embassament de moment, tot i que la predicció de cabal corregida és més fiable per separat — <a href="https://nereidaca.github.io/hydro_tool/" target="_blank" rel="noopener">detalls i validació</a>.</span>
+    </div>
   </header>
 
   <div class="layout">
@@ -364,6 +373,10 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
   const inputs = { v0: $('v0'), atl: $('atl'), gir: $('gir'), reg: $('reg'), eco: $('eco') };
   const yearCache = {};
   let INDEX = null, D = null, BASE = null, current = null, monthly = null, selYear = null, selInit = null, loadToken = 0;
+  // Default OFF: QM-corrected inflow has better skill alone, but once combined with the
+  // reservoir release plan it currently gives a WORSE volume forecast than the operational
+  // series (validated — see seasonal/bias_correction/skill_comparison.csv). Opt-in for comparison.
+  let qmActive = false;
 
   // ---------- data ----------
   function addDays(iso, k) { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + k); return d.toISOString().slice(0, 10); }
@@ -378,19 +391,25 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
   function prepare(init, m) {
     const dates = Array.from({ length: m.n }, (_, i) => addDays(m.start, i));
     const monthEndIdx = m.months.map(mm => { let last = -1; dates.forEach((d, i) => { if (d.startsWith(mm)) last = i; }); return last; });
-    const Qin = m.Q.map(r => Float64Array.from(r, x => x / 100));
-    const inflowMedian = m.months.map(mm => {
+    const Qin_op = m.Q.map(r => Float64Array.from(r, x => x / 100));
+    const Qin_qm = m.Q_qm ? m.Q_qm.map(r => Float64Array.from(r, x => x / 100)) : null;
+    const inflowMedianOf = (Qin) => m.months.map(mm => {
       const idx = []; dates.forEach((d, i) => { if (d.startsWith(mm)) idx.push(i); });
       const tot = Qin.map(q => idx.reduce((a, i) => a + q[i], 0) * sec / 1e6).sort((a, b) => a - b);
       return tot[Math.floor((tot.length - 1) / 2)];
     });
     return {
-      init, dates, Qin, V0: m.V0, vmax: m.vmax, months: m.months, members: m.members, n: m.n,
-      monthDays: m.months.map(E.daysInMonth), monthEndIdx, inflowMedian,
+      init, dates, Qin_op, Qin_qm, V0: m.V0, vmax: m.vmax, months: m.months, members: m.members, n: m.n,
+      monthDays: m.months.map(E.daysInMonth), monthEndIdx,
+      inflowMedian: inflowMedianOf(Qin_op), inflowMedianQm: Qin_qm ? inflowMedianOf(Qin_qm) : null,
       monthLabels: m.months.map(mm => `${MES[+mm.slice(5) - 1]} ${mm.slice(0, 4)}`),
       plan: m.plan, obsV: m.obsV, obsInflow: m.obsInflow, maxErr: m.maxErr,
       thresholds: { alerta: dates.map(d => ALERTA[+d.slice(5, 7)]), excepcionalitat: dates.map(() => 85), emergencia1: dates.map(() => 65), prealerta: dates.map(() => 200) },
     };
+  }
+  function applyQmMode() {
+    if (!D) return;
+    D.Qin = (qmActive && D.Qin_qm) ? D.Qin_qm : D.Qin_op;
   }
 
   // ---------- model ----------
@@ -470,6 +489,8 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
     if (token !== loadToken) return;
     $('loading').textContent = '';
     D = prepare(init, y.months[init]);
+    applyQmMode();
+    renderQmToggle();
     monthly = { atl: D.plan.atl.slice(), gir: D.plan.gir.slice(), reg: D.plan.reg.slice() };
     if (st) KEYS.forEach(k => { const a = st['m_' + k]; if (a && a.length === D.months.length && a.every(x => isFinite(x) && x >= 0)) monthly[k] = a; });
     inputs.v0.max = Math.ceil(D.vmax);
@@ -489,6 +510,22 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
     $('max-err').textContent = f2.format(D.maxErr);
     $('plan-source').textContent = `Valors abans d’aplicar els percentatges. Pla de la predicció: ${D.plan.source}.`;
     $('lg-obs').hidden = !D.obsV;
+  }
+
+  // ---------- QM bias-correction toggle ----------
+  function renderQmToggle() {
+    const wrap = $('qm-toggle'); if (!wrap) return;
+    const has = !!D.Qin_qm;
+    wrap.hidden = !has;
+    if (!has) return;
+    $('qm-on').classList.toggle('sel', qmActive);
+    $('qm-off').classList.toggle('sel', !qmActive);
+  }
+  function setQmActive(v) {
+    qmActive = v;
+    applyQmMode();
+    renderQmToggle();
+    if (D) { BASE = run({ v0: D.V0, atl: 100, gir: 100, reg: 100, eco: D.plan.eco }, D.plan); execute(); }
   }
 
   // ---------- results ----------
@@ -638,6 +675,8 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
     $('monthsl').addEventListener('click', ev => { const b = ev.target.closest('button[data-init]'); if (b && !b.disabled) selectInit(b.dataset.init); });
     $('reset').addEventListener('click', () => { restorePlan(); setState({ v0: D.V0, atl: 100, gir: 100, reg: 100, eco: D.plan.eco }); updateReadouts(); execute(); });
     $('v0-pub').addEventListener('click', () => { inputs.v0.value = D.V0; onChange(); });
+    $('qm-on') && $('qm-on').addEventListener('click', () => setQmActive(true));
+    $('qm-off') && $('qm-off').addEventListener('click', () => setQmActive(false));
     document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
       const p = PRESETS[b.dataset.preset]; restorePlan(); setState({ ...p, eco: p.eco === null ? D.plan.eco : p.eco }); onChange();
     }));
