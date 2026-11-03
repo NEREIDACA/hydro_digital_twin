@@ -90,6 +90,9 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 @media (max-width:1180px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{padding:14px 16px;display:grid;gap:4px;align-content:start}
 .kpi .label{font-size:13px;color:var(--ink-2);font-weight:700}
+.kpi .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0}
+.kpi .pl{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.kpi .value.obsv{color:var(--ink-2)}
 .kpi .value{font-size:30px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
 .kpi .value small{font-size:15px;font-weight:400;color:var(--ink-2);margin-left:3px}
 .kpi .sub{font-size:13px;color:var(--muted)}
@@ -117,6 +120,14 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 .chart .med{fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linejoin:round}
 .chart .base{fill:none;stroke:var(--base);stroke-width:2;stroke-dasharray:6 4}
 .chart .hover-line{stroke:var(--ink-2);stroke-width:1}
+.chart .sel-line{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:2 3}
+.chart .dsep{stroke:var(--rule)}
+.chart .dtitle{fill:var(--ink-2);font-size:12px;font-weight:700}
+.chart .dens-fill{fill:var(--band-outer)}
+.chart .dens-line{fill:none;stroke:var(--accent);stroke-width:2}
+.chart .dens-base{fill:none;stroke:var(--base);stroke-width:1.8;stroke-dasharray:5 3}
+.chart .dens-med{stroke:var(--accent);stroke-width:1.2}
+.chart .dens-obs{stroke:var(--ink);stroke-width:2.2}
 .chart .hover-dot{fill:var(--panel);stroke-width:2}
 .tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--rule);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:13px;min-width:190px;opacity:0;transition:opacity .08s}
 .tip .t{font-weight:700;margin-bottom:3px}
@@ -165,9 +176,9 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
     <div class="meta"><span id="meta-init"></span><span id="meta-members"></span><span id="meta-horizon"></span></div>
     <div id="qm-toggle" hidden>
       <span class="qm-label">Predicció d’entrada del Sau:</span>
-      <button type="button" class="chip-btn" id="qm-off">Original</button>
+      <button type="button" class="chip-btn" id="qm-off">Sense corregir</button>
       <button type="button" class="chip-btn" id="qm-on">Corregida (QM)</button>
-      <span class="qm-label">Original = millor per al volum de l’embassament de moment, tot i que la predicció de cabal corregida és més fiable per separat — <a href="https://nereidaca.github.io/hydro_tool/" target="_blank" rel="noopener">detalls i validació</a>.</span>
+      <span class="qm-label">Sense corregir = millor per al volum de l’embassament de moment, tot i que la predicció de cabal corregida és més fiable per separat — <a href="https://nereidaca.github.io/hydro_tool/" target="_blank" rel="noopener">detalls i validació</a>.</span>
     </div>
   </header>
 
@@ -189,7 +200,7 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
         <div class="field">
           <div class="field-head"><label for="v0">Reserves inicials</label><span class="readout num" id="v0-out"></span></div>
           <input type="range" id="v0" min="0" max="399" step="0.1">
-          <div class="chips"><button class="chip-btn" id="v0-pub" type="button">Valor de la predicció publicada</button></div>
+          <div class="chips"><button class="chip-btn" id="v0-pub" type="button">Valor de la predicció original</button></div>
         </div>
       </div>
 
@@ -246,16 +257,18 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
           <div class="legend">
             <span><i class="sw band"></i>Escenari: 80% i 50% dels membres</span>
             <span><i class="sw med"></i>Escenari: mediana</span>
-            <span><i class="sw base"></i>Predicció publicada</span>
+            <span><i class="sw base"></i>Predicció original (pla sense canvis)</span>
             <span id="lg-obs" hidden><i class="sw obs"></i>Volum observat</span>
           </div>
         </div>
         <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+        <p class="hint" style="margin-top:6px">Panell de la dreta: distribució dels membres el dia seleccionat (passa el ratolí pel gràfic; per defecte, l’últim dia). Línia contínua: escenari; discontínua: predicció original; línia fosca: volum observat.</p>
       </div>
 
       <div class="card pad">
         <h2 style="margin-bottom:8px">Mes a mes</h2>
         <div class="table-wrap"><table class="num" id="table"></table></div>
+        <p class="hint" style="margin-top:8px"><b>Habilitat</b>: com d’encertada ha estat la predicció de reserves en el passat, per a prediccions iniciades el mateix mes de l’any (prediccions retrospectives 1995–2025, unes 30 per mes). CRPSS &gt; 0 vol dir millor que la climatologia; 1 seria perfecta. <span class="pill ok">fiable</span> CRPSS ≥ 0,1 i NSE &gt; 0 · <span class="pill warn">parcial</span> només una de les dues · <span class="pill crit">sense habilitat</span> cap. Correspon a la predicció sense corregir.</p>
       </div>
 
       <div class="card pad">
@@ -274,7 +287,7 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
 
       <div class="notes">
         <p><b>Prototip de recerca.</b> No substitueix les decisions de l’ACA ni les declaracions del Pla especial de sequera.</p>
-        <p>El balanç és el mateix que el del pipeline operatiu de NEREIDA (reprodueix cada predicció publicada; diferència màxima per al mes triat: <span id="max-err"></span> hm³): entrades a Sau del model GR4J forçat amb SEAS5, sense aportació local de Susqueda ni evaporació. El model té un biaix sec conegut a les entrades a Sau. Llindars: indicador Ter (Sau + Susqueda) del PES, versió 2024.</p>
+        <p>El balanç és el mateix que el del pipeline operatiu de NEREIDA (reprodueix cada predicció original del pipeline; diferència màxima per al mes triat: <span id="max-err"></span> hm³): entrades a Sau del model GR4J forçat amb SEAS5, sense aportació local de Susqueda ni evaporació. El model té un biaix sec conegut a les entrades a Sau. Llindars: indicador Ter (Sau + Susqueda) del PES, versió 2024.</p>
       </div>
     </section>
   </div>
@@ -403,6 +416,7 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
       monthDays: m.months.map(E.daysInMonth), monthEndIdx,
       inflowMedian: inflowMedianOf(Qin_op), inflowMedianQm: Qin_qm ? inflowMedianOf(Qin_qm) : null,
       monthLabels: m.months.map(mm => `${MES[+mm.slice(5) - 1]} ${mm.slice(0, 4)}`),
+      skill: m.months.map((_, i) => ((INDEX.skill || {})[String(+init.slice(5))] || []).find(r => r.lead === i + 1) || null),
       plan: m.plan, obsV: m.obsV, obsInflow: m.obsInflow, maxErr: m.maxErr,
       thresholds: { alerta: dates.map(d => ALERTA[+d.slice(5, 7)]), excepcionalitat: dates.map(() => 85), emergencia1: dates.map(() => 65), prealerta: dates.map(() => 200) },
     };
@@ -537,29 +551,44 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
   const pct = p => `${f0.format(100 * p)}%`;
   const dayLabel = i => { const d = D.dates[i]; return `${MES_CURT[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}`; };
 
+  // same traffic light as the hydro_tool density plots (codes/functions.R)
+  function skillClass(sk) {
+    if (!sk) return null;
+    if (sk.crpss >= 0.1 && sk.nse > 0) return { c: 'ok', t: 'fiable' };
+    if (sk.crpss >= 0 || sk.nse > 0) return { c: 'warn', t: 'parcial' };
+    return { c: 'crit', t: 'sense habilitat' };
+  }
+  const pair = (a, b, unit) => `<div class="pair">
+      <div><div class="pl">Predicció</div><div class="value num">${a}${unit ? `<small>${unit}</small>` : ''}</div></div>
+      <div><div class="pl">Observat</div><div class="value num obsv">${b === null ? '–' : b}${unit && b !== null ? `<small>${unit}</small>` : ''}</div></div></div>`;
+
   function renderKpis(R) {
     const last = D.n - 1, ld = D.dates[last];
     const lab = { alerta: 'Risc d’alerta', excepcionalitat: 'Risc d’excepcionalitat', emergencia1: 'Risc d’emergència I' };
     const thrTxt = { alerta: '120–160 hm³', excepcionalitat: '85 hm³', emergencia1: '65 hm³' };
     const obsLast = D.obsV && D.obsV[last] !== null ? D.obsV[last] : null;
+    const noObs = '<div class="sub">Observat: encara no disponible</div>';
     let html = `<div class="card kpi"><div class="label">Reserves ${elDia(+ld.slice(8))} ${deMes(+ld.slice(5, 7) - 1)} de ${ld.slice(0, 4)}</div>
-      <div class="value num">${f0.format(R.sum.p50[last])}<small>hm³</small></div>
-      <div class="sub num">80% dels membres: ${f0.format(R.sum.p10[last])}–${f0.format(R.sum.p90[last])} hm³</div>
-      <div class="cmp num">Predicció publicada: ${f0.format(BASE.sum.p50[last])} hm³${obsLast !== null ? ` · Observat: <b>${f0.format(obsLast)} hm³</b>` : ''}</div></div>`;
+      ${pair(f0.format(R.sum.p50[last]), obsLast === null ? null : f0.format(obsLast), 'hm³')}
+      <div class="sub num">Predicció: mediana; 80% dels membres entre ${f0.format(R.sum.p10[last])} i ${f0.format(R.sum.p90[last])} hm³</div>
+      ${obsLast === null ? noObs : ''}
+      <div class="cmp num">Predicció original: ${f0.format(BASE.sum.p50[last])} hm³</div></div>`;
     for (const k of ['alerta', 'excepcionalitat', 'emergencia1']) {
       const c = R.cross[k], b = BASE.cross[k], oc = obsCrossing(k);
       const when = c.p === 0 ? `Cap membre baixa de ${thrTxt[k]}` : (c.medianFirst === 0 ? 'Ja per sota del llindar a l’inici' : `Primer creuament típic: ${dayLabel(c.medianFirst)}`);
-      const obsTxt = oc === null ? '' : (oc === -1 ? ' · Observat: no' : ` · Observat: sí (${dayLabel(oc)})`);
-      html += `<div class="card kpi"><div class="label">${lab[k]}</div>
-        <div class="value num">${pct(c.p)}${riskPill(c.p)}</div><div class="sub">${when}</div>
-        <div class="cmp num">Publicada: ${pct(b.p)}${obsTxt}</div></div>`;
+      const obsP = oc === null ? null : (oc === -1 ? '0%' : '100%');
+      const obsWhen = oc === null ? noObs : (oc === -1 ? `<div class="sub">Observat: no va baixar de ${thrTxt[k]}</div>` : `<div class="sub">Observat: per sota des de ${dayLabel(oc)}</div>`);
+      html += `<div class="card kpi"><div class="label">${lab[k]} ${riskPill(c.p)}</div>
+        ${pair(pct(c.p), obsP, '')}
+        <div class="sub">${when}</div>${obsWhen}
+        <div class="cmp num">Predicció original: ${pct(b.p)}</div></div>`;
     }
     $('kpis').innerHTML = html;
   }
 
   function renderTable(R) {
     const hasObsQ = !!D.obsInflow, hasObsV = !!D.obsV;
-    let h = `<thead><tr><th rowspan="2">Mes</th><th class="grp sep" colspan="${hasObsQ ? 2 : 1}">Entrades a Sau (hm³)</th><th class="grp sep" colspan="2">Desembassament (hm³)</th><th class="grp sep" colspan="${hasObsV ? 2 : 1}">Reserves a final de mes (hm³)</th></tr>
+    let h = `<thead><tr><th rowspan="2">Mes</th><th class="grp sep" colspan="${hasObsQ ? 2 : 1}">Entrades a Sau (hm³)</th><th class="grp sep" colspan="2">Desembassament (hm³)</th><th class="grp sep" colspan="${hasObsV ? 2 : 1}">Reserves a final de mes (hm³)</th><th class="sep" rowspan="2">Habilitat<br>(CRPSS)</th></tr>
       <tr><th class="sep">Previstes<br>mediana</th>${hasObsQ ? '<th>Observades</th>' : ''}<th class="sep">Escenari</th><th>Pla</th><th class="sep">Previstes<br>mediana (80%)</th>${hasObsV ? '<th>Observades</th>' : ''}</tr></thead><tbody>`;
     D.months.forEach((m, i) => {
       const e = D.monthEndIdx[i], diff = R.totals[i] - BASE.totals[i];
@@ -568,9 +597,15 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
       const ov = hasObsV && D.obsV[e] !== null ? f0.format(D.obsV[e]) : '–';
       h += `<tr><td>${D.monthLabels[i]}</td><td class="sep">${f1.format(D.inflowMedian[i])}</td>${hasObsQ ? `<td>${oq}</td>` : ''}
         <td class="sep ${cls}">${f1.format(R.totals[i])}</td><td>${f1.format(BASE.totals[i])}</td>
-        <td class="sep">${f0.format(R.sum.p50[e])}<span class="range">(${f0.format(R.sum.p10[e])}–${f0.format(R.sum.p90[e])})</span></td>${hasObsV ? `<td>${ov}</td>` : ''}</tr>`;
+        <td class="sep">${f0.format(R.sum.p50[e])}<span class="range">(${f0.format(R.sum.p10[e])}–${f0.format(R.sum.p90[e])})</span></td>${hasObsV ? `<td>${ov}</td>` : ''}
+        <td class="sep">${skillCell(D.skill[i])}</td></tr>`;
     });
     $('table').innerHTML = h + '</tbody>';
+  }
+
+  function skillCell(sk) {
+    const c = skillClass(sk);
+    return c ? `${f2.format(sk.crpss)}<span class="pill ${c.c}">${c.t}</span>` : '<span class="range">–</span>';
   }
 
   function renderExample(R) {
@@ -588,52 +623,93 @@ details.example summary{cursor:pointer;font-weight:700;font-size:14px;color:var(
   }
 
   const chartEl = $('chart'), tip = $('tip');
+  // Gaussian KDE of the ensemble on a 0..yMax grid (Silverman bandwidth, floor 2 hm³)
+  function kde(vals, yMax) {
+    const n = vals.length, mean = vals.reduce((a, b) => a + b, 0) / n;
+    const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, n - 1));
+    const h = Math.max(2, 1.06 * sd * Math.pow(n, -0.2)), out = [];
+    for (let v = 0; v <= yMax; v += 2) {
+      let d = 0; for (const x of vals) { const z = (v - x) / h; d += Math.exp(-0.5 * z * z); }
+      out.push([v, d / (n * h)]);
+    }
+    return out;
+  }
   function renderChart(R) {
     const n = D.n, W = Math.max(320, chartEl.clientWidth), H = W < 640 ? 300 : 380;
-    const m = { l: 44, r: W < 640 ? 84 : 112, t: 12, b: 30 };
-    const iw = W - m.l - m.r, ih = H - m.t - m.b, yMax = 400;
+    const dw = W < 640 ? 70 : 150, gap = W < 640 ? 10 : 18;          // density panel width and gap
+    const m = { l: 44, r: W < 640 ? 84 : 112, t: 26, b: 30 };
+    const dx1 = W - m.r, dx0 = dx1 - dw, xr = dx0 - gap;               // time series spans m.l..xr
+    const iw = xr - m.l, ih = H - m.t - m.b, yMax = 400;
     const x = i => m.l + iw * i / (n - 1), y = v => m.t + ih * (1 - v / yMax);
     const line = arr => { let p = '', pen = false; for (let i = 0; i < n; i++) { const v = arr[i]; if (v === null || v === undefined || !isFinite(v)) { pen = false; continue; } p += (pen ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1); pen = true; } return p; };
     const area = (lo, hi) => { let p = ''; for (let i = 0; i < n; i++) p += (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(hi[i]).toFixed(1); for (let i = n - 1; i >= 0; i--) p += 'L' + x(i).toFixed(1) + ',' + y(lo[i]).toFixed(1); return p + 'Z'; };
-    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Rang previst de reserves de Sau i Susqueda">`;
-    s += '<g class="grid">'; for (let v = 0; v <= 400; v += 100) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`; s += '</g><g class="axis">';
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Rang previst de reserves de Sau i Susqueda i distribució dels membres">`;
+    s += '<g class="grid">'; for (let v = 0; v <= 400; v += 100) s += `<line x1="${m.l}" x2="${dx1}" y1="${y(v)}" y2="${y(v)}"/>`; s += '</g><g class="axis">';
     for (let v = 0; v <= 400; v += 100) s += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
-    D.dates.forEach((d, i) => { if (d.endsWith('-01')) { const mo = +d.slice(5, 7); s += `<text x="${x(i)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : 'middle'}">${MES_CURT[mo - 1]}${mo === 1 ? ' ' + d.slice(0, 4) : ''}</text>`; } });
+    D.dates.forEach((d, i) => { if (d.endsWith('-01')) { const mo = +d.slice(5, 7); s += `<text x="${x(i)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : 'middle'}">${MES_CURT[mo - 1]}${mo === 1 || i === 0 ? ' ' + d.slice(0, 4) : ''}</text>`; } });
     s += '</g>';
-    s += `<line class="cap" x1="${m.l}" x2="${W - m.r}" y1="${y(D.vmax)}" y2="${y(D.vmax)}"/><text class="thr-label" x="${W - m.r + 6}" y="${y(D.vmax) + 4}">Capacitat</text>`;
+    s += `<line class="dsep" x1="${dx0 - gap / 2}" x2="${dx0 - gap / 2}" y1="${m.t}" y2="${m.t + ih}"/>`;
+    s += `<text class="dtitle" id="dtitle" x="${dx0}" y="${m.t - 10}"></text>`;
+    s += `<line class="cap" x1="${m.l}" x2="${dx1}" y1="${y(D.vmax)}" y2="${y(D.vmax)}"/><text class="thr-label" x="${dx1 + 6}" y="${y(D.vmax) + 4}">Capacitat</text>`;
     let lastY = -99;
     [['prealerta', 'Prealerta'], ['alerta', 'Alerta'], ['excepcionalitat', 'Excepcionalitat'], ['emergencia1', 'Emergència I']].forEach(([k, name]) => {
-      const a = D.thresholds[k]; s += `<path class="thr" d="${line(a)}"/>`;
+      const a = D.thresholds[k]; s += `<path class="thr" d="${line(a)}"/><line class="thr" id="dthr-${k}" x1="${dx0}" x2="${dx1}"/>`;
       let ly = y(a[n - 1]) + 4; if (Math.abs(ly - lastY) < 13) ly = lastY + 13; lastY = ly;
-      s += `<text class="thr-label" x="${W - m.r + 6}" y="${ly}">${name}</text>`;
+      s += `<text class="thr-label" x="${dx1 + 6}" y="${ly}">${name}</text>`;
     });
     s += `<path class="band-outer" d="${area(R.sum.p10, R.sum.p90)}"/><path class="band-inner" d="${area(R.sum.p25, R.sum.p75)}"/>`;
     s += `<path class="base" d="${line(BASE.sum.p50)}"/><path class="med" d="${line(R.sum.p50)}"/>`;
     if (D.obsV) s += `<path class="obs" d="${line(D.obsV)}"/>`;
-    s += `<g id="hover" style="display:none"><line class="hover-line" id="hl" y1="${m.t}" y2="${m.t + ih}"/><circle class="hover-dot" id="hd1" r="4" style="stroke:var(--accent)"/><circle class="hover-dot" id="hd2" r="4" style="stroke:var(--base)"/></g>`;
+    s += `<line class="sel-line" id="sel" y1="${m.t}" y2="${m.t + ih}"/>`;
+    s += `<g id="dens"></g>`;
+    s += `<g id="hover" style="display:none"><circle class="hover-dot" id="hd1" r="4" style="stroke:var(--accent)"/><circle class="hover-dot" id="hd2" r="4" style="stroke:var(--base)"/></g>`;
     s += `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/></svg>`;
     chartEl.innerHTML = s; chartEl.appendChild(tip);
-    const hit = chartEl.querySelector('#hit'), hov = chartEl.querySelector('#hover');
+    const q = sel => chartEl.querySelector(sel);
+
+    // density panel for day i: scenario members (filled), original forecast (dashed), observed (tick)
+    function drawDensity(i) {
+      const col = tr => tr.map(v => v[i]);
+      const a = kde(col(R.traj), yMax), b = kde(col(BASE.traj), yMax);
+      const dmax = Math.max(...a.map(p => p[1]), ...b.map(p => p[1])) || 1;
+      const dx = d => dx0 + (dw - 4) * d / dmax;
+      const trim = k => { const lo = k.findIndex(p => p[1] > 0.004 * dmax); let hi = k.length - 1; while (hi > lo && k[hi][1] <= 0.004 * dmax) hi--; return lo < 0 ? [] : k.slice(lo, hi + 1); };
+      const path = k => k.map((p, j) => (j ? 'L' : 'M') + dx(p[1]).toFixed(1) + ',' + y(p[0]).toFixed(1)).join('');
+      const ta = trim(a), tb = trim(b);
+      let g = ta.length ? `<path class="dens-fill" d="M${dx0},${y(ta[0][0])}${path(ta).replace(/^M/, 'L')}L${dx0},${y(ta.at(-1)[0])}Z"/><path class="dens-line" d="${path(ta)}"/>` : '';
+      if (tb.length) g += `<path class="dens-base" d="${path(tb)}"/>`;
+      g += `<line class="dens-med" x1="${dx0}" x2="${dx1}" y1="${y(R.sum.p50[i])}" y2="${y(R.sum.p50[i])}"/>`;
+      const ov = D.obsV ? D.obsV[i] : null;
+      if (ov !== null && ov !== undefined) g += `<line class="dens-obs" x1="${dx0}" x2="${dx1}" y1="${y(ov)}" y2="${y(ov)}"/>`;
+      q('#dens').innerHTML = g;
+      ['prealerta', 'alerta', 'excepcionalitat', 'emergencia1'].forEach(k => { const l = q('#dthr-' + k), yy = y(D.thresholds[k][i]); l.setAttribute('y1', yy); l.setAttribute('y2', yy); });
+      const [yy, mm, dd] = D.dates[i].split('-');
+      q('#dtitle').textContent = `${W < 640 ? '' : 'Distribució · '}${+dd} ${MES_CURT[+mm - 1]} ${yy}`;
+      const sl = q('#sel'); sl.setAttribute('x1', x(i)); sl.setAttribute('x2', x(i));
+    }
+    drawDensity(n - 1);
+
+    const hit = q('#hit'), hov = q('#hover');
     hit.addEventListener('pointermove', ev => {
-      const rect = chartEl.querySelector('svg').getBoundingClientRect(), scale = W / rect.width;
+      const rect = q('svg').getBoundingClientRect(), scale = W / rect.width;
       const i = Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - rect.left) * scale - m.l) / iw * (n - 1))));
       hov.style.display = '';
-      const hl = chartEl.querySelector('#hl'); hl.setAttribute('x1', x(i)); hl.setAttribute('x2', x(i));
-      const d1 = chartEl.querySelector('#hd1'); d1.setAttribute('cx', x(i)); d1.setAttribute('cy', y(R.sum.p50[i]));
-      const d2 = chartEl.querySelector('#hd2'); d2.setAttribute('cx', x(i)); d2.setAttribute('cy', y(BASE.sum.p50[i]));
+      drawDensity(i);
+      const d1 = q('#hd1'); d1.setAttribute('cx', x(i)); d1.setAttribute('cy', y(R.sum.p50[i]));
+      const d2 = q('#hd2'); d2.setAttribute('cx', x(i)); d2.setAttribute('cy', y(BASE.sum.p50[i]));
       const [yy, mm, dd] = D.dates[i].split('-'), ov = D.obsV ? D.obsV[i] : null;
       tip.innerHTML = `<div class="t">${+dd} ${MES_CURT[+mm - 1]} ${yy}</div>
         <div class="r"><span>Escenari (mediana)</span><b class="num">${f0.format(R.sum.p50[i])} hm³</b></div>
         <div class="r"><span>80% dels membres</span><b class="num">${f0.format(R.sum.p10[i])}–${f0.format(R.sum.p90[i])}</b></div>
-        <div class="r"><span>Predicció publicada</span><b class="num">${f0.format(BASE.sum.p50[i])} hm³</b></div>
+        <div class="r"><span>Predicció original</span><b class="num">${f0.format(BASE.sum.p50[i])} hm³</b></div>
         ${ov !== null ? `<div class="r"><span>Observat</span><b class="num">${f0.format(ov)} hm³</b></div>` : ''}
         <div class="r"><span>Llindar d’alerta</span><b class="num">${D.thresholds.alerta[i]} hm³</b></div>`;
       const left = x(i) / scale, tw = tip.offsetWidth;
-      tip.style.left = (left + 14 + tw > rect.width ? left - tw - 14 : left + 14) + 'px';
+      tip.style.left = (left + 14 + tw > xr / scale ? left - tw - 14 : left + 14) + 'px';
       tip.style.top = Math.max(0, y(R.sum.p50[i]) / scale - 40) + 'px';
       tip.style.opacity = 1;
     });
-    hit.addEventListener('pointerleave', () => { hov.style.display = 'none'; tip.style.opacity = 0; });
+    hit.addEventListener('pointerleave', () => { hov.style.display = 'none'; tip.style.opacity = 0; drawDensity(n - 1); });
   }
 
   function renderEditor() {
